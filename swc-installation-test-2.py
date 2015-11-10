@@ -65,10 +65,6 @@ import re as _re
 import shlex as _shlex
 import subprocess as _subprocess
 import sys as _sys
-try:  # Python 3.x
-    import urllib.parse as _urllib_parse
-except ImportError:  # Python 2.x
-    import urllib as _urllib_parse  # for quote()
 import xml.etree.ElementTree as _element_tree
 
 
