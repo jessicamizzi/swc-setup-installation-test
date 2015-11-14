@@ -124,6 +124,9 @@ if _platform.system() == 'win32':
     _ROOT_PATH = 'c:\\'
 
 
+_LOG = _logging.getLogger(__name__)
+
+
 class InvalidCheck (KeyError):
     def __init__(self, check):
         super(InvalidCheck, self).__init__(check)
@@ -962,6 +965,8 @@ def print_suggestions(instructor_fallback=True):
 if __name__ == '__main__':
     import optparse as _optparse
 
+    _LOG.addHandler(_logging.StreamHandler())
+
     parser = _optparse.OptionParser(usage='%prog [options] [check...]')
     epilog = __doc__
     parser.format_epilog = lambda formatter: '\n' + epilog
@@ -973,6 +978,11 @@ if __name__ == '__main__':
         help=('print additional information to help troubleshoot '
               'installation issues'))
     options,args = parser.parse_args()
+
+    if options.verbose:
+        _LOG.setLevel(_logging.DEBUG)
+    else:
+        _LOG.setLevel(_logging.WARNING)
 
     if options.list:
         for key in sorted(CHECKER.keys()):
