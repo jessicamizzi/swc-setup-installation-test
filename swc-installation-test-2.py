@@ -657,11 +657,9 @@ class EasyInstallDependency (CommandDependency):
 
 
 class PythonDependency (Dependency):
-    def __init__(self, name='python', long_name='Python version',
-                 minimum_version=(2, 6), **kwargs):
+    def __init__(self, name='python', long_name='Python version', **kwargs):
         super(PythonDependency, self).__init__(
-            name=name, long_name=long_name, minimum_version=minimum_version,
-            **kwargs)
+            name=name, long_name=long_name, **kwargs)
 
     def _get_version(self):
         return _sys.version
@@ -744,57 +742,54 @@ def _program_files_paths(*args):
 CHECKER['python'] = PythonDependency()
 
 
-for command,long_name,minimum_version,paths in [
-        ('sh', 'Bourne Shell', None, None),
-        ('ash', 'Almquist Shell', None, None),
-        ('bash', 'Bourne Again Shell', None, None),
-        ('csh', 'C Shell', None, None),
-        ('ksh', 'KornShell', None, None),
-        ('dash', 'Debian Almquist Shell', None, None),
-        ('tcsh', 'TENEX C Shell', None, None),
-        ('zsh', 'Z Shell', None, None),
-        ('git', 'Git', (1, 7, 0), None),
-        ('hg', 'Mercurial', (2, 0, 0), None),
-        ('EasyMercurial', None, (1, 3), None),
-        ('pip', None, None, None),
-        ('sqlite3', 'SQLite 3', None, None),
-        ('nosetests', 'Nose', (1, 0, 0), None),
-        ('ipython', 'IPython script', (1, 0), None),
-        ('emacs', 'Emacs', None, None),
-        ('xemacs', 'XEmacs', None, None),
-        ('vim', 'Vim', None, None),
-        ('vi', None, None, None),
-        ('nano', 'Nano', None, None),
-        ('gedit', None, None, None),
-        ('kate', 'Kate', None, None),
-        ('notepad++', 'Notepad++', None,
+for command,long_name,paths in [
+        ('sh', 'Bourne Shell', None),
+        ('ash', 'Almquist Shell', None),
+        ('bash', 'Bourne Again Shell', None),
+        ('csh', 'C Shell', None),
+        ('ksh', 'KornShell', None),
+        ('dash', 'Debian Almquist Shell', None),
+        ('tcsh', 'TENEX C Shell', None),
+        ('zsh', 'Z Shell', None),
+        ('git', 'Git', None),
+        ('hg', 'Mercurial', None),
+        ('EasyMercurial', None, None),
+        ('pip', None, None),
+        ('sqlite3', 'SQLite 3', None),
+        ('nosetests', 'Nose', None),
+        ('ipython', 'IPython script', None),
+        ('emacs', 'Emacs', None),
+        ('xemacs', 'XEmacs', None),
+        ('vim', 'Vim', None),
+        ('vi', None, None),
+        ('nano', 'Nano', None),
+        ('gedit', None, None),
+        ('kate', 'Kate', None),
+        ('notepad++', 'Notepad++',
          _program_files_paths('Notepad++', 'notepad++.exe')),
-        ('firefox', 'Firefox', None,
+        ('firefox', 'Firefox',
          _program_files_paths('Mozilla Firefox', 'firefox.exe')),
-        ('google-chrome', 'Google Chrome', None,
+        ('google-chrome', 'Google Chrome',
          _program_files_paths('Google', 'Chrome', 'Application', 'chrome.exe')
          ),
-        ('chromium', 'Chromium', None, None),
+        ('chromium', 'Chromium', None),
         ]:
     if not long_name:
         long_name = command
     CHECKER[command] = CommandDependency(
-        command=command, paths=paths, long_name=long_name,
-        minimum_version=minimum_version)
-del command, long_name, minimum_version, paths  # cleanup namespace
+        command=command, paths=paths, long_name=long_name)
+del command, long_name, paths  # cleanup namespace
 
 
-CHECKER['make'] = MakeDependency(command='make', minimum_version=None)
+CHECKER['make'] = MakeDependency(command='make')
 
 
 CHECKER['easy_install'] = EasyInstallDependency(
-    command='easy_install', long_name='Setuptools easy_install',
-    minimum_version=None)
+    command='easy_install', long_name='Setuptools easy_install')
 
 
 CHECKER['py.test'] = CommandDependency(
-    command='py.test', version_stream='stderr',
-    minimum_version=None)
+    command='py.test', version_stream='stderr')
 
 
 for paths,name,long_name in [
@@ -824,67 +819,27 @@ for paths,name,long_name in [
 del paths, name, long_name  # cleanup namespace
 
 
-for package,name,long_name,minimum_version,and_dependencies in [
-        ('nose', None, 'Nose Python package',
-         CHECKER['nosetests'].minimum_version, None),
-        ('pytest', None, 'pytest Python package',
-         CHECKER['py.test'].minimum_version, None),
-        ('jinja2', 'jinja', 'Jinja', (2, 6), None),
-        ('zmq', 'pyzmq', 'PyZMQ', (2, 1, 4), None),
-        ('IPython', None, 'IPython Python package',
-         CHECKER['ipython'].minimum_version, [
+for package,name,long_name,and_dependencies in [
+        ('nose', None, 'Nose Python package', None),
+        ('pytest', None, 'pytest Python package', None),
+        ('jinja2', 'jinja', 'Jinja', None),
+        ('zmq', 'pyzmq', 'PyZMQ', None),
+        ('IPython', None, 'IPython Python package', [
              'jinja',
              'tornado',
              'pyzmq',
-             VirtualDependency(
-                 name='virtual-browser-ipython',
-                 long_name='IPython-compatible web browser',
-                 or_dependencies=[
-                     CommandDependency(
-                         command=CHECKER['firefox'].command,
-                         paths=CHECKER['firefox'].paths,
-                         name='{0}-for-ipython'.format(
-                             CHECKER['firefox'].name),
-                         long_name='{0} for IPython'.format(
-                             CHECKER['firefox'].long_name),
-                         minimum_version=(6, 0)),
-                     CommandDependency(
-                         command=CHECKER['google-chrome'].command,
-                         paths=CHECKER['google-chrome'].paths,
-                         name='{0}-for-ipython'.format(
-                             CHECKER['google-chrome'].name),
-                         long_name='{0} for IPython'.format(
-                             CHECKER['google-chrome'].long_name),
-                         minimum_version=(13, 0)),
-                     CommandDependency(
-                         command=CHECKER['chromium'].command,
-                         paths=CHECKER['chromium'].paths,
-                         name='{0}-for-ipython'.format(
-                             CHECKER['chromium'].name),
-                         long_name='{0} for IPython'.format(
-                             CHECKER['chromium'].long_name),
-                         minimum_version=(13, 0)),
-                     VersionPlistCommandDependency(
-                         command=CHECKER['safari'].command,
-                         paths=CHECKER['safari'].paths,
-                         key=CHECKER['safari'].key,
-                         name='{0}-for-ipython'.format(
-                             CHECKER['safari'].name),
-                         long_name='{0} for IPython'.format(
-                             CHECKER['safari'].long_name),
-                         minimum_version=(5, 0)),
-                 ]),
+             'virtual-browser',
          ]),
-        ('argparse', None, 'Argparse', None, None),
-        ('numpy', None, 'NumPy', None, None),
-        ('scipy', None, 'SciPy', None, None),
-        ('matplotlib', None, 'Matplotlib', None, None),
-        ('pandas', None, 'Pandas', (0, 8), None),
-        ('sympy', None, 'SymPy', None, None),
-        ('Cython', None, None, None, None),
-        ('networkx', None, 'NetworkX', None, None),
-        ('mayavi.mlab', None, 'MayaVi', None, None),
-        ('setuptools', None, 'Setuptools', None, None),
+        ('argparse', None, 'Argparse', None),
+        ('numpy', None, 'NumPy', None),
+        ('scipy', None, 'SciPy', None),
+        ('matplotlib', None, 'Matplotlib', None),
+        ('pandas', None, 'Pandas', None),
+        ('sympy', None, 'SymPy', None),
+        ('Cython', None, None, None),
+        ('networkx', None, 'NetworkX', None),
+        ('mayavi.mlab', None, 'MayaVi', None),
+        ('setuptools', None, 'Setuptools', None),
         ]:
     if not name:
         name = package
@@ -894,26 +849,23 @@ for package,name,long_name,minimum_version,and_dependencies in [
     if and_dependencies:
         kwargs['and_dependencies'] = and_dependencies
     CHECKER[name] = PythonPackageDependency(
-        package=package, name=name, long_name=long_name,
-        minimum_version=minimum_version, **kwargs)
+        package=package, name=name, long_name=long_name, **kwargs)
 # cleanup namespace
-del package, name, long_name, minimum_version, and_dependencies, kwargs
+del package, name, long_name, and_dependencies, kwargs
 
 
 CHECKER['mercurial'] = MercurialPythonPackage(
     package='mercurial.util', name='mercurial',
-    long_name='Mercurial Python package',
-    minimum_version=CHECKER['hg'].minimum_version)
+    long_name='Mercurial Python package')
 
 
 CHECKER['tornado'] = TornadoPythonPackage(
-    package='tornado', name='tornado', long_name='Tornado', minimum_version=(2, 0))
+    package='tornado', name='tornado', long_name='Tornado')
 
 
 CHECKER['sqlite3-python'] = SQLitePythonPackage(
     package='sqlite3', name='sqlite3-python',
-    long_name='SQLite Python package',
-    minimum_version=CHECKER['sqlite3'].minimum_version)
+    long_name='SQLite Python package')
 
 
 CHECKER['other-editor'] = EditorTaskDependency(
