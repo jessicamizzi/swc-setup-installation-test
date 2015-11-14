@@ -1014,10 +1014,19 @@ if __name__ == '__main__':
     epilog = __doc__
     parser.format_epilog = lambda formatter: '\n' + epilog
     parser.add_option(
+        '-l', '--list', action='store_true',
+        help='list available checks and exit')
+    parser.add_option(
         '-v', '--verbose', action='store_true',
         help=('print additional information to help troubleshoot '
               'installation issues'))
     options,args = parser.parse_args()
+
+    if options.list:
+        for key in sorted(CHECKER.keys()):
+            print(key)
+        _sys.exit(0)
+
     try:
         passed = check(args)
     except InvalidCheck as e:
