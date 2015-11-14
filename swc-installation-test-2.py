@@ -11,9 +11,14 @@ Run the script and follow the instructions it prints at the end.
 This script requires at least Python 2.6.  You can check the version
 of Python that you have installed with 'swc-installation-test-1.py'.
 
-By default, this script will test for all the dependencies your
-instructor thinks you need.  If you want to test for a different set
-of packages, you can list them on the command line.  For example:
+To test for a particular event's requirements, point the script at a
+lesson listing:
+
+  python swc-installation-test-2.py --url https://swcarpentry.github.io/2015-11-09-abc/lessons.json
+
+replacing the URL with your event's lesson listing.  If you want to
+test for a different set of packages, you can list them on the command
+line.  For example:
 
   python swc-installation-test-2.py git virtual-editor
 
@@ -28,9 +33,7 @@ dependency.
 # Dependency class. You can refer to the code to see which package
 # comes under which type of dependency.
 
-# The CHECKER dictionary stores information about all the dependencies
-# and CHECKS stores list of the dependencies which are to be checked in
-# the current workshop.
+# The CHECKER dictionary stores information about all the dependencies.
 
 # In the "__name__ == '__main__'" block, we launch all the checks with
 # check() function, which prints information about the tests as they run
@@ -58,6 +61,7 @@ except ImportError:  # Python 2.6 and earlier
                 module = getattr(module, n)
             return module
     _importlib = _Importlib()
+import json as _json
 import logging as _logging
 import os as _os
 import platform as _platform
@@ -65,6 +69,10 @@ import re as _re
 import shlex as _shlex
 import subprocess as _subprocess
 import sys as _sys
+try:  # Python 3.x
+    import urllib.request as _urllib_request
+except ImportError:  # Python 2.x
+    import urllib2 as _urllib_request  # for urlopen()
 import xml.etree.ElementTree as _element_tree
 
 
@@ -75,47 +83,6 @@ if not hasattr(_shlex, 'quote'):  # Python versions older than 3.3
 
 
 __version__ = '0.1'
-
-# Comment out any entries you don't need
-CHECKS = [
-# Shell
-    'virtual-shell',
-# Editors
-    'virtual-editor',
-# Browsers
-    'virtual-browser',
-# Version control
-    'git',
-    'hg',              # Command line tool
-    #'mercurial',       # Python package
-    'EasyMercurial',
-# Build tools and packaging
-    'make',
-    'virtual-pypi-installer',
-    'setuptools',
-    #'xcode',
-# Testing
-    'nosetests',       # Command line tool
-    'nose',            # Python package
-    'py.test',         # Command line tool
-    'pytest',          # Python package
-# SQL
-    'sqlite3',         # Command line tool
-    'sqlite3-python',  # Python package
-# Python
-    'python',
-    'ipython',         # Command line tool
-    'IPython',         # Python package
-    'argparse',        # Useful for utility scripts
-    'numpy',
-    'scipy',
-    'matplotlib',
-    'pandas',
-    #'sympy',
-    #'Cython',
-    #'networkx',
-    #'mayavi.mlab',
-    ]
 
 CHECKER = {}
 
@@ -246,11 +213,9 @@ class DependencyError (Exception):
         return '\n'.join(lines)
 
 
-def check(checks=None):
+def check(checks):
     successes = []
     failures = []
-    if not checks:
-        checks = CHECKS
     for check in checks:
         try:
             checker = CHECKER[check]
@@ -876,7 +841,7 @@ CHECKER['other-editor'] = EditorTaskDependency(
 
 
 for name,long_name,dependencies in [
-        ('virtual-shell', 'command line shell', (
+        ('virtual-shell', 'command line shell', [
             'bash',
             'dash',
             'ash',
@@ -885,8 +850,8 @@ for name,long_name,dependencies in [
             'csh',
             'tcsh',
             'sh',
-            )),
-        ('virtual-editor', 'text/code editor', (
+            ]),
+        ('virtual-editor', 'text/code editor', [
             'emacs',
             'xemacs',
             'vim',
@@ -899,21 +864,89 @@ for name,long_name,dependencies in [
             'textmate',
             'textwrangler',
             'other-editor',  # last because it requires user interaction
-            )),
-        ('virtual-browser', 'web browser', (
+            ]),
+        ('virtual-browser', 'web browser', [
             'firefox',
             'google-chrome',
             'chromium',
             'safari',
-            )),
-        ('virtual-pypi-installer', 'PyPI installer', (
+            ]),
+        ('virtual-pypi-installer', 'PyPI installer', [
             'pip',
             'easy_install',
-            )),
+            ]),
         ]:
     CHECKER[name] = VirtualDependency(
         name=name, long_name=long_name, or_dependencies=dependencies)
 del name, long_name, dependencies  # cleanup namespace
+
+
+def _get_json(url):
+    response = _urllib_request.urlopen(url)  # not context manager in Python 2
+    info = response.info()
+    response_bytes = response.read()
+    if hasattr(info, 'get_content_charset'):
+        # Python 3, info is email.message.Message
+        charset = info.get_content_charset('UTF-8')
+    else:  # Python 2, info is mimetools.Message
+        charset = info.getparam('charset') or 'UTF-8'
+    response.close()
+    json = response_bytes.decode(charset)
+    return _json.loads(json)
+
+
+def _update_checker(url, checker, config):
+    if 'minimum-version' in config:
+        version = config['minimum-version']
+        if (not checker.minimum_version or
+            version > checker.minimum_version):
+            _LOG.debug('set minimum version for {} to {}'.format(
+                checker.name, version))
+            checker.minimum_version = version
+    if 'blacklist' in config:
+        _LOG.debug('blacklist or-dependencies for {}: {}'.format(
+            checker.name, config['blacklist']))
+        for check in config['blacklist']:
+            try:
+                checker.or_dependencies.remove(check)
+            except ValueError:
+                try:
+                    c = CHECKER[check]
+                except KeyError as e:
+                    _LOG.warning(
+                        '{} blacklists an unrecognized check: {}'.format(
+                            url, requirement))
+                    raise InvalidCheck(check)# from e
+                try:
+                    checker.or_dependencies.remove(c)
+                except ValueError:
+                    _LOG.debug(
+                        'not blacklisting missing or-dependency for {}: {}'
+                        .format(checker.name, check))
+                    pass  # maybe someone else already removed it
+
+
+def get_checks(url):
+    checks = set()
+    _LOG.debug('get lessons from {}'.format(url))
+    lessons = _get_json(url=url)
+    for lesson, lesson_config in lessons.items():
+        requirements_url = lesson_config.get('requirements')
+        if requirements_url:
+            _LOG.debug('get requirements for {} from {}'.format(
+                lesson, requirements_url))
+            requirements = _get_json(url=requirements_url)
+            for check, config in requirements.items():
+                checks.add(check)
+                try:
+                    checker = CHECKER[check]
+                except KeyError as e:
+                    _LOG.warning(
+                        '{} requires an unrecognized check: {}'.format(
+                            requirements_url, check))
+                    raise InvalidCheck(check)# from e
+                _update_checker(url=requirements_url, checker=checker, config=config)
+    return sorted(checks)
 
 
 def _print_info(key, value, indent=19):
@@ -977,6 +1010,9 @@ if __name__ == '__main__':
         '-v', '--verbose', action='store_true',
         help=('print additional information to help troubleshoot '
               'installation issues'))
+    parser.add_option(
+        '-u', '--url', metavar='URL',
+        help='URL for the workshop repository or GitHub pages website')
     options,args = parser.parse_args()
 
     if options.verbose:
@@ -989,6 +1025,13 @@ if __name__ == '__main__':
             print(key)
         _sys.exit(0)
 
+    if options.url:
+        if args:
+            print(
+                'you should set either --url or explicit checks, not both',
+                file=_sys.stderr)
+            _sys.exit(1)
+        args = get_checks(url=options.url)
     try:
         passed = check(args)
     except InvalidCheck as e:

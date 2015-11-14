@@ -2,13 +2,14 @@ For learners
 ============
 
 This directory contains scripts for testing your machine to make sure
-you have the software you'll need for your workshop installed.  See
-the comments at the head of each script for more details, but you'll
-basically want to see something like:
+you have the software you'll need for your workshop installed.  Your
+instructors should provide you with a URL listing the workshop's
+dependencies.  See the comments at the head of each script for more
+details, but you'll basically want to see something like:
 
     $ python swc-installation-test-1.py
     Passed
-    $ python swc-installation-test-2.py
+    $ python swc-installation-test-2.py --url https://swcarpentry.github.io/2015-11-09-abc/lessons.json
     check virtual-shell...  pass
     …
     Successes:
@@ -18,7 +19,7 @@ basically want to see something like:
 
 If you see something like:
 
-    $ python swc-installation-test-2.py
+    $ python swc-installation-test-2.py --url https://swcarpentry.github.io/2015-11-09-abc/lessons.json
     check virtual-shell...  fail
     …
     check for command line shell (virtual-shell) failed:
@@ -36,7 +37,7 @@ follow the suggestions to try and install any missing software.  For
 additional troubleshooting information, you can use the `--verbose`
 option:
 
-    $ python swc-installation-test-2.py --verbose
+    $ python swc-installation-test-2.py --url https://swcarpentry.github.io/2015-11-09-abc/lessons.json --verbose
     check virtual-shell...  fail
     …
     ==================
@@ -51,26 +52,81 @@ For instructors
 `swc-installation-test-1.py` is pretty simple, and just checks that
 the students have a recent enough version of Python installed that
 they'll be able to parse `swc-installation-test-2.py`.  The latter
-checks for a list of dependencies and prints error messages if a
+checks for your workshop's requirements and prints error messages if a
 package is not installed, or if the installed version is not current
-enough.  By default, the script checks for pretty much anything that
-has ever been used at a Software Carpentry workshop, which is probably
-not what you want for your particular workshop.
+enough.  When you setup your workshop, you should write a [JSON][]
+file listing the lessons you will cover.  For example:
 
-Before your workshop, you should go through
-`swc-installation-test-2.py` and comment any dependencies you don't
-need out of the `CHECKS` list.  You might also want to skim through
-the minimum version numbers listed where particular dependencies are
-defined (e.g. `('git', 'Git', (1, 7, 0), None)`).  For the most part,
-fairly conservative values have been selected, so students with modern
-machines should be fine.  If your workshop has stricter version
-requirements, feel free to bump them accordingly.
+```json
+{
+  "shell": {
+    "requirements": "https://raw.githubusercontent.com/swcarpentry/shell-novice/v5.4/requirements.json"
+  },
+  "git": {
+    "requirements": "https://raw.githubusercontent.com/swcarpentry/git-novice/v5.3/requirements.json"
+  },
+  "python": {
+    "requirements": "https://raw.githubusercontent.com/swcarpentry/python-novice-inflammation/v5.4/requirements.json"
+  },
+  "sql": {
+    "requirements": "https://raw.githubusercontent.com/swcarpentry/sql-novice-survey/v5.7/requirements.json"
+  }
+}
+```
 
-Similarly, the virtual dependencies can be satisfied by any of several
-packages.  If you don't want to support a particular package (e.g. if
-you have no Emacs experience and don't want to be responsible for
-students who show up with Emacs as their only editor), you can comment
-out that particular `or_dependency`.
+The lesson names (“shell”, “git”, …) are only used for logging, and
+you may add other attributes or entries that don't define
+`requirements` if you wish.  `swc-installation-test-2.py` will collect
+requirements from the lesson requirement files and then check to make
+sure they are all satisfied.  If you want to use a lesson that does
+not provide a `requirements.json`, you can write your own requirement
+file for that lesson and use your URL in your workshop's JSON:
 
-Finally, don't forget to post your modified scripts somewhere where
-your students can download them!
+```json
+{
+  "shell": {
+    "requirements": "https://swcarpentry.github.io/2015-11-09-abc/shell-requirements.json"
+  }
+}
+```
+
+For lesson maintainers
+======================
+
+By providing a `requirements.json` file, you make it easy for others
+to discover its requirements.  For example, [instructors can write
+workshop requirements](#for-instructors) referencing your listing.
+The [JSON][] file should be an object whose keys are check names and
+whose values are objects that may contain a `minimum-version` key.  If
+`minimum-version` is set, it must be an array specifying the minimum
+version of the checked software compatible with your lesson.  For
+example:
+
+```json
+{
+  "git": {
+    "minimum-version": [1, 7, 0]
+  },
+  "virtual-editor": {},
+  "virtual-browser": {},
+  "virtual-shell": {}
+}
+```
+
+You may add other attributes to the per-check objects if you wish.
+
+Virtual dependencies can be satisfied by any of several packages.  If
+you don't want to support a particular package (e.g. if you have no
+Emacs experience and don't want to be responsible for students who
+show up with Emacs as their only editor), you can blacklist the
+package:
+
+```json
+{
+  "virtual-editor": {
+    "blacklist": ["emacs"]
+  }
+}
+```
+
+[JSON]: http://json.org/
