@@ -138,7 +138,7 @@ class InvalidCheck (KeyError):
 
 
 class DependencyError (Exception):
-    _default_url = 'http://software-carpentry.org/setup/'
+    _default_url = 'http://software-carpentry.org/workshops/setup.html'
     _setup_urls = {  # (system, version, package) glob pairs
         ('*', '*', 'Cython'): 'http://docs.cython.org/src/quickstart/install.html',
         ('Linux', '*', 'EasyMercurial'): 'http://easyhg.org/download.html#download-linux',
